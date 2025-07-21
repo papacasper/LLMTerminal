@@ -1,6 +1,7 @@
 use reqwest::Client;
 use std::sync::Arc;
 use async_trait::async_trait;
+use serde_json::{json, Value};
 
 #[async_trait]
 #[allow(dead_code)]
@@ -36,6 +37,54 @@ impl ClaudeClient {
             client: Arc::new(Client::new()),
         }
     }
+
+    pub async fn query(&self, input: &str, model: &str, max_tokens: u32, temperature: f32) -> Result<String, String> {
+        if self.api_key.is_empty() {
+            return Err("Claude API key not provided".to_string());
+        }
+
+        let payload = json!({
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [{
+                "role": "user",
+                "content": input
+            }]
+        });
+
+        let response = self.client
+            .post("https://api.anthropic.com/v1/messages")
+            .header("Content-Type", "application/json")
+            .header("x-api-key", &self.api_key)
+            .header("anthropic-version", "2023-06-01")
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| format!("Request failed: {}", e))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(format!("API request failed with status {}: {}", status, error_text));
+        }
+
+        let json: Value = response
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+        // Extract the response content from Claude's API response format
+        if let Some(content) = json["content"].as_array() {
+            if let Some(first_content) = content.first() {
+                if let Some(text) = first_content["text"].as_str() {
+                    return Ok(text.to_string());
+                }
+            }
+        }
+
+        Err("Unable to extract response from Claude API".to_string())
+    }
 }
 
 #[derive(Clone)]
@@ -64,6 +113,55 @@ impl OpenAIClient {
             api_key,
             client: Arc::new(Client::new()),
         }
+    }
+
+    pub async fn query(&self, input: &str, model: &str, max_tokens: u32, temperature: f32) -> Result<String, String> {
+        if self.api_key.is_empty() {
+            return Err("OpenAI API key not provided".to_string());
+        }
+
+        let payload = json!({
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [{
+                "role": "user",
+                "content": input
+            }]
+        });
+
+        let response = self.client
+            .post("https://api.openai.com/v1/chat/completions")
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| format!("Request failed: {}", e))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(format!("API request failed with status {}: {}", status, error_text));
+        }
+
+        let json: Value = response
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+        // Extract the response content from OpenAI's API response format
+        if let Some(choices) = json["choices"].as_array() {
+            if let Some(first_choice) = choices.first() {
+                if let Some(message) = first_choice["message"].as_object() {
+                    if let Some(content) = message["content"].as_str() {
+                        return Ok(content.to_string());
+                    }
+                }
+            }
+        }
+
+        Err("Unable to extract response from OpenAI API".to_string())
     }
 }
 
