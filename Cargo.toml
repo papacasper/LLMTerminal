@@ -6,10 +6,10 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1.0", features = ["full"] }
 reqwest = { version = "0.11", features = ["json", "blocking"] }
-crossterm = "0.26"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-getopts = "0.2"
 async-trait = "0.1"
-ratatui = "0.26"
 anyhow = "1.0"
+egui = "0.27"
+eframe = { version = "0.27", default-features = false, features = ["default_fonts", "glow", "persistence"] }
+pollster = "0.3"
