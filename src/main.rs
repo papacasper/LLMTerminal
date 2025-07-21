@@ -1,64 +1,50 @@
 use crossterm::event::{read, Event, KeyCode, KeyEvent};
-use std::sync::Arc;
 mod config;
 mod llm;
+mod models;
 
 use config::Config;
-use llm::{ClaudeClient, LLMClient, OpenAIClient};
-
-#[derive(Clone)]
-enum LLMProvider {
-    Claude(ClaudeClient),
-    OpenAI(OpenAIClient),
-}
-
-impl LLMProvider {
-    async fn send_message(&self, message: &str) -> Result<String, Box<dyn std::error::Error>> {
-        match self {
-            LLMProvider::Claude(client) => client.send_message(message).await,
-            LLMProvider::OpenAI(client) => client.send_message(message).await,
-        }
-    }
-    
-    fn provider(&self) -> String {
-        match self {
-            LLMProvider::Claude(client) => client.provider(),
-            LLMProvider::OpenAI(client) => client.provider(),
-        }
-    }
-}
+use llm::{ClaudeClient, OpenAIClient};
+use models::{AppState, AppTab, LLMProvider};
+use anyhow::Result;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     let config = Config::load_from_file("config.json");
-    let claude_client = ClaudeClient::new(config.claude_api_key);
-    let openai_client = OpenAIClient::new(config.openai_api_key);
+    let claude_client = ClaudeClient::new(config.claude_api_key.clone());
+    let openai_client = OpenAIClient::new(config.openai_api_key.clone());
     let clients = vec![LLMProvider::Claude(claude_client), LLMProvider::OpenAI(openai_client)];
-    let app = AppState { clients };
 
-    app.run().await;
+    let mut app_state = AppState::new();
+    app_state.settings = config;
+
+    run_app(&mut app_state).await;
+    Ok(())
 }
 
-struct AppState {
-    clients: Vec<LLMProvider>,
-}
+async fn run_app(app_state: &mut AppState) {
+    println!("Welcome to LLMTerminal! Navigate with tabs. Type 'exit' to quit.");
+    loop {
+        match app_state.current_tab {
+            AppTab::Terminal => println!("You're on the Terminal tab."),
+            AppTab::Settings => println!("You're on the Settings tab."),
+            AppTab::Chat => println!("You're on the Chat tab."),
+        }
 
-impl AppState {
-    async fn run(&self) {
-        println!("Welcome to LLMTerminal! Type 'exit' to quit.");
-        loop {
-            if let Event::Key(KeyEvent { code, .. }) = read().unwrap() {
-                match code {
-                    KeyCode::Char('q') => {
-                        println!("Exiting...");
-                        break;
-                    }
-                    KeyCode::Char(c) => {
-                        println!("You pressed: {}", c);
-                    }
-                    _ => {}
+        if let Event::Key(KeyEvent { code, .. }) = read().unwrap() {
+            match code {
+                KeyCode::Char('q') => {
+                    println!("Exiting...");
+                    app_state.quit();
                 }
+                KeyCode::Char('t') => app_state.next_tab(),
+                KeyCode::Char('b') => app_state.previous_tab(),
+                _ => {}
             }
+        }
+
+        if app_state.should_quit {
+            break;
         }
     }
 }
