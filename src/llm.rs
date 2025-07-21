@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 #[async_trait]
+#[allow(dead_code)]
 pub trait LLMClient {
     async fn send_message(&self, message: &str) -> Result<String, Box<dyn std::error::Error>>;
     fn provider(&self) -> String;
@@ -10,13 +11,15 @@ pub trait LLMClient {
 
 #[derive(Clone)]
 pub struct ClaudeClient {
+    #[allow(dead_code)]
     api_key: String,
+    #[allow(dead_code)]
     client: Arc<Client>,
 }
 
 #[async_trait]
 impl LLMClient for ClaudeClient {
-    async fn send_message(&self, message: &str) -> Result<String, Box<dyn std::error::Error>> {
+    async fn send_message(&self, _message: &str) -> Result<String, Box<dyn std::error::Error>> {
         // Implement sending message to Claude API
         Ok(String::from("response from Claude"))
     }
@@ -37,13 +40,15 @@ impl ClaudeClient {
 
 #[derive(Clone)]
 pub struct OpenAIClient {
+    #[allow(dead_code)]
     api_key: String,
+    #[allow(dead_code)]
     client: Arc<Client>,
 }
 
 #[async_trait]
 impl LLMClient for OpenAIClient {
-    async fn send_message(&self, message: &str) -> Result<String, Box<dyn std::error::Error>> {
+    async fn send_message(&self, _message: &str) -> Result<String, Box<dyn std::error::Error>> {
         // Implement sending message to OpenAI API
         Ok(String::from("response from OpenAI"))
     }

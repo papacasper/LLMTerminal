@@ -12,8 +12,11 @@ pub enum AppTab {
 pub struct AppState {
     pub current_tab: AppTab,
     pub settings: AppSettings,
+    #[allow(dead_code)]
     pub input_buffer: String,
+    #[allow(dead_code)]
     pub messages: Vec<ChatMessage>,
+    #[allow(dead_code)]
     pub should_quit: bool,
 }
 
@@ -34,12 +37,16 @@ pub enum LLMProviderType {
 
 #[derive(Debug, Clone)]
 pub struct ChatMessage {
+    #[allow(dead_code)]
     pub role: MessageRole,
+    #[allow(dead_code)]
     pub content: String,
+    #[allow(dead_code)]
     pub timestamp: String,
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum MessageRole {
     User,
     Assistant,
@@ -47,6 +54,7 @@ pub enum MessageRole {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub enum LLMProvider {
     Claude(ClaudeClient),
     OpenAI(OpenAIClient),
@@ -79,25 +87,5 @@ impl Default for AppState {
 impl AppState {
     pub fn new() -> Self {
         Self::default()
-    }
-    
-    pub fn next_tab(&mut self) {
-        self.current_tab = match self.current_tab {
-            AppTab::Terminal => AppTab::Chat,
-            AppTab::Chat => AppTab::Settings,
-            AppTab::Settings => AppTab::Terminal,
-        };
-    }
-    
-    pub fn previous_tab(&mut self) {
-        self.current_tab = match self.current_tab {
-            AppTab::Terminal => AppTab::Settings,
-            AppTab::Settings => AppTab::Chat,
-            AppTab::Chat => AppTab::Terminal,
-        };
-    }
-    
-    pub fn quit(&mut self) {
-        self.should_quit = true;
     }
 }
